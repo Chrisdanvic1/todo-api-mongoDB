@@ -1,71 +1,86 @@
 import { Router } from "express";
 import tasks from "../data/tasks.js";
+import { getAll, getById, newTasks } from "../controllers/task.controller.js";
 
 const taskRouter = Router();
 
 // To get all tasks
 
-taskRouter.get("/", (req, res) => {
-  if (tasks.length === 0) {
-    res.send({ message: "Tasks is empty" });
-    return;
-  }
-  res.send({ title: "Get all Tasks", tasks });
-});
+taskRouter.get(
+  "/",
+  getAll,
+  // (req, res) => {
+  //   if (tasks.length === 0) {
+  //     res.send({ message: "Tasks is empty" });
+  //     return;
+  //   }
+  //   res.send({ title: "Get all Tasks", tasks });
+  //
+  // }
+);
 
 // To get task by id
 
-taskRouter.get("/:id", (req, res) => {
-  const taskId = Number(req.params.id);
-  const foundTask = tasks.find((task) => task.id === taskId);
+taskRouter.get(
+  "/:id",
+  getById,
+  //   (req, res) => {
+  //   const taskId = Number(req.params.id);
+  //   const foundTask = tasks.find((task) => task.id === taskId);
 
-  if (!foundTask) {
-    return res.status(404).send({
-      error: `Task with id ${req.params.id} not found`,
-    });
-  }
+  //   if (!foundTask) {
+  //     return res.status(404).send({
+  //       error: `Task with id ${req.params.id} not found`,
+  //     });
+  //   }
 
-  res.send({
-    title: `Task ${req.params.id} retrieved successfully`,
-    task: foundTask,
-  });
-});
+  //   res.send({
+  //     title: `Task ${req.params.id} retrieved successfully`,
+  //     task: foundTask,
+  //   });
+  // }
+);
 
 // To send task to the tasks array
 
-taskRouter.post("/", (req, res) => {
-  const { title, dateForCompletion } = req.body;
+//   "/",
+//   newTasks,
+//    (req, res) => {
+//   const { title, dateForCompletion } = req.body;
 
-  if (
-    !title ||
-    typeof title !== "string" ||
-    title.trim().length < 5 ||
-    !dateForCompletion
-  ) {
-    return res.status(400).send({
-      error:
-        "Title must be at least 5 characters and dateForCompletion is required.",
-    });
-  }
+//   if (
+//     !title ||
+//     typeof title !== "string" ||
+//     title.trim().length < 5 ||
+//     !dateForCompletion
+//   ) {
+//     return res.status(400).send({
+//       error:
+//         "Title must be at least 5 characters and dateForCompletion is required.",
+//     });
+//   }
 
-  // const nextId = tasks.length + 1;
-  const nextId = tasks.length > 0 ? tasks[tasks.length - 1].id + 1 : 1;
+//   // const nextId = tasks.length + 1;
+//   const nextId = tasks.length > 0 ? tasks[tasks.length - 1].id + 1 : 1;
 
-  const newTask = {
-    id: nextId,
-    title: title.trim(),
-    completed: false,
-    dateCreated: new Date().toISOString(),
-    dateForCompletion,
-  };
+//   const newTask = {
+//     id: nextId,
+//     title: title.trim(),
+//     completed: false,
+//     dateCreated: new Date().toISOString(),
+//     dateForCompletion,
+//   };
 
-  tasks.push(newTask);
+//   tasks.push(newTask);
 
-  return res.status(201).send({
-    message: "Task created successfully",
-    task: newTask,
-  });
-});
+//   return res.status(201).send({
+//     message: "Task created successfully",
+//     task: newTask,
+//   });
+// }
+// );
+
+taskRouter.post("/", newTasks);
 
 // To edit a specific task
 
