@@ -83,3 +83,43 @@ export const getById = (req, res, next) => {
     },
   });
 };
+
+export const update = (req, res, next) => {
+  const { title, dateForCompletion, completed } = req.body;
+
+  const taskId = req.params.id;
+  const foundTask = Task.findById(taskId);
+
+  if (!foundTask) {
+    let error = new Error(`No task with ${taskId} was found`);
+    error.statusCode = 404;
+    next(error);
+  }
+  if (title) {
+    if (!title || typeof title !== "string" || title.trim().length < 5) {
+      return res.status(400).send({
+        error:
+          "Title must be at least 5 characters and dateForCompletion is required.",
+      });
+    }
+    foundTask.title = title.trim();
+  }
+
+  if (dateForCompletion) {
+    foundTask.dateForCompletion = dateForCompletion;
+  }
+  if (completed !== undefined) {
+    if (typeof completed !== "boolean") {
+      return res
+        .status(400)
+        .send({ message: "completed must be true or false" });
+    } else {
+      foundTask.completed = completed;
+    }
+  }
+
+  res.send({
+    message: "Task updated successfully",
+    foundTask,
+  });
+};
