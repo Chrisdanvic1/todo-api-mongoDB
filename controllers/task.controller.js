@@ -1,8 +1,6 @@
 // /* eslint-disable no-unused-vars */
 import mongoose from "mongoose";
 import Task from "../models/task.model.js";
-import jwt from "jsonwebtoken";
-import { JWT_EXPIRES_IN, JWT_SECRET } from "../config/env.js";
 
 export const newTasks = async (req, res, next) => {
   const session = await mongoose.startSession();
@@ -28,10 +26,6 @@ export const newTasks = async (req, res, next) => {
       session,
     });
 
-    const token = jwt.sign({ userId: newTask[0]._id }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    });
-
     await session.commitTransaction();
     session.endSession();
 
@@ -39,7 +33,6 @@ export const newTasks = async (req, res, next) => {
       success: true,
       message: "Task created successfully",
       data: {
-        token,
         task: newTask,
       },
     });
@@ -57,7 +50,7 @@ export const getAll = async (req, res, next) => {
       success: true,
       message: "All tasks",
       data: {
-        task: { tasks },
+        tasks,
       },
     });
   } catch (error) {
@@ -65,9 +58,18 @@ export const getAll = async (req, res, next) => {
   }
 };
 
-export const getById = (req, res, next) => {
+export const getById = async (req, res, next) => {
   const taskId = req.params.id;
-  const tasks = Task.findById({ taskId });
+
+  if (!mongoose.Types.ObjectId.isValid(taskId)) {
+    const error = new Error("Invalid task id");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  let id = await new mongoose.Types.ObjectId(taskId);
+  // let id = res.json(taskId);
+  const tasks = await Task.findById(id);
 
   if (!tasks) {
     const error = new Error("No task found");
@@ -77,49 +79,94 @@ export const getById = (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    message: "All tasks",
+    message: `Task ${req.params.id} found successfully`,
     data: {
       tasks,
     },
   });
 };
 
-export const update = (req, res, next) => {
-  const { title, dateForCompletion, completed } = req.body;
+export const update = async (req, res, next) => {
+  try {
+    const { title, dateForCompletion, completed } = req.body;
 
+    const taskId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      const error = new Error("Invalid task id");
+      error.statusCode = 400;
+      return next(error);
+    }
+    let id = new mongoose.Types.ObjectId(taskId);
+
+    const foundTask = await Task.findById(id);
+    if (!foundTask) {
+      let error = new Error(`No task with ${taskId} was found`);
+      error.statusCode = 404;
+      return next(error);
+    }
+    if (title !== undefined) {
+      if (typeof title !== "string" || title.trim().length < 5) {
+        return res.status(400).send({
+          error:
+            "Title must be at least 5 characters and dateForCompletion is required.",
+        });
+      }
+      foundTask.title = title.trim();
+    }
+
+    if (dateForCompletion) {
+      foundTask.dateForCompletion = dateForCompletion;
+    }
+    if (completed !== undefined) {
+      if (typeof completed !== "boolean") {
+        return res
+          .status(400)
+          .send({ message: "completed must be true or false" });
+      } else {
+        foundTask.completed = completed;
+      }
+    }
+    await foundTask.save();
+    res.status(200).json({
+      message: "Task updated successfully",
+      foundTask,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const deleted = async (req, res, next) => {
   const taskId = req.params.id;
-  const foundTask = Task.findById(taskId);
 
-  if (!foundTask) {
-    let error = new Error(`No task with ${taskId} was found`);
+  if (!mongoose.Types.ObjectId.isValid(taskId)) {
+    const error = new Error("Invalid task id");
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  let id = new mongoose.Types.ObjectId(taskId);
+  // let id = res.json(taskId);
+  const tasks = await Task.findByIdAndDelete(id);
+  if (!tasks) {
+    const error = new Error("No task found");
     error.statusCode = 404;
     next(error);
   }
-  if (title) {
-    if (!title || typeof title !== "string" || title.trim().length < 5) {
-      return res.status(400).send({
-        error:
-          "Title must be at least 5 characters and dateForCompletion is required.",
-      });
-    }
-    foundTask.title = title.trim();
-  }
 
-  if (dateForCompletion) {
-    foundTask.dateForCompletion = dateForCompletion;
-  }
-  if (completed !== undefined) {
-    if (typeof completed !== "boolean") {
-      return res
-        .status(400)
-        .send({ message: "completed must be true or false" });
-    } else {
-      foundTask.completed = completed;
-    }
-  }
-
-  res.send({
-    message: "Task updated successfully",
-    foundTask,
+  res.status(200).json({
+    Status: "Success",
+    message: "Task deleted successfully",
   });
 };
+
+// PATCH
+// ✔ validate ObjectId
+// ✔ Task.findById()
+// ✔ modify fields
+// ✔ save()
+
+// DELETE
+// ✔ validate ObjectId
+// ✔ Task.findByIdAndDelete()
